@@ -1,29 +1,80 @@
-<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
-<html>
+<!DOCTYPE html>
+<html lang="ja">
 <head>
-  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-  <meta http-equiv="Content-Style-Type" content="text/css">
-  <title></title>
-  <meta name="Generator" content="Cocoa HTML Writer">
-  <meta name="CocoaVersion" content="2685.3">
-  <style type="text/css">
-    body {background-color: #ecf1f6}
-    p.p2 {margin: 0.0px 0.0px 12.0px 0.0px; text-align: center; font: 12.0px 'Hiragino Sans'; -webkit-text-stroke: #000000}
-    p.p3 {margin: 0.0px 0.0px 0.0px 0.0px; font: 18.0px 'Hiragino Sans'; -webkit-text-stroke: #000000}
-    p.p4 {margin: 0.0px 0.0px 0.0px 0.0px; text-align: center; font: 12.0px 'Hiragino Sans'; -webkit-text-stroke: #000000; min-height: 18.0px}
-    p.p5 {margin: 0.0px 0.0px 0.0px 0.0px; text-align: center; font: 18.0px 'Hiragino Sans'; color: #ffffff; -webkit-text-stroke: #ffffff; background-color: #3b7adb}
-    span.s1 {font: 24.0px 'Apple Color Emoji'; font-kerning: none; background-color: #ffffff}
-    span.s2 {font-kerning: none; background-color: #ffffff}
-    span.s3 {font-kerning: none}
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Quest Out</title>
+    <link rel="manifest" href="manifest.json">
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
+    <style>
+        :root { --primary: #ff9800; --bg: #1a1a2e; --card: #16213e; --text: #ffffff; }
+        body { font-family: 'Helvetica Neue', Arial, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 20px; display: flex; flex-direction: column; align-items: center; }
+        .status-card { background: var(--card); border-radius: 20px; padding: 20px; width: 100%; max-width: 350px; box-shadow: 0 10px 20px rgba(0,0,0,0.3); margin-bottom: 20px; border: 2px solid var(--primary); }
+        .level-badge { font-size: 24px; font-weight: bold; color: var(--primary); }
+        .wage-up { font-size: 14px; color: #4caf50; margin-top: 5px; font-weight: bold; }
+        .quest-list { background: var(--card); border-radius: 20px; padding: 20px; width: 100%; max-width: 350px; text-align: left; }
+        .quest-item { margin: 15px 0; display: flex; align-items: center; font-size: 18px; cursor: pointer; }
+        input[type="checkbox"] { width: 25px; height: 25px; margin-right: 15px; accent-color: var(--primary); }
+        button { background: linear-gradient(45deg, #ff9800, #f44336); color: white; border: none; padding: 15px 40px; border-radius: 50px; font-size: 20px; font-weight: bold; cursor: pointer; margin-top: 20px; box-shadow: 0 5px 15px rgba(244, 67, 54, 0.4); width: 100%; max-width: 350px; }
+        button:active { transform: scale(0.98); }
+        .hidden { display: none; }
+    </style>
 </head>
 <body>
-<h1 style="margin: 0.0px 0.0px 16.1px 0.0px; text-align: center; font: 24.0px 'Hiragino Sans'; -webkit-text-stroke: #000000"><span class="s1">⚔️</span><span class="s2"><b> Quest Out</b><b></b></span></h1>
-<p class="p2"><span class="s2">本日の任務を完了せよ</span></p>
-<p class="p3"><span class="s2">デスクの整理</span></p>
-<p class="p3"><span class="s2">明日の準備</span></p>
-<p class="p3"><span class="s2">挨拶をして帰る</span></p>
-<p class="p4"><span class="s3"></span><br></p>
-<p class="p5"><span class="s3">クエスト完了！</span></p>
+
+    <!-- ステータス画面 -->
+    <div class="status-card">
+        <div>現在のランク</div>
+        <div class="level-badge" id="levelDisplay">Lv.1 冒険者候補</div>
+        <div id="wageMessage" class="hidden wage-up">✨ 時給＋50円 確定！ ✨</div>
+    </div>
+
+    <!-- 任務リスト -->
+    <div class="quest-list">
+        <h2>⚔️ 今日のミッション</h2>
+        <label class="quest-item"><input type="checkbox" class="q-check"> 掃除をする</label>
+        <label class="quest-item"><input type="checkbox" class="q-check"> レジ締めをする</label>
+        <label class="quest-item"><input type="checkbox" class="q-check"> 鍵を閉める</label>
+        <p style="font-size: 12px; color: #aaa;">※2つ以上達成でレベルアップ！</p>
+    </div>
+
+    <button onclick="finishDay()">業務完了・報告！</button>
+
+    <script>
+        function finishDay() {
+            const checks = document.querySelectorAll('.q-check:checked');
+            const count = checks.length;
+
+            if (count >= 2) {
+                // 成功演出：紙吹雪
+                confetti({
+                    particleCount: 150,
+                    spread: 70,
+                    origin: { y: 0.6 },
+                    colors: ['#ff9800', '#ffffff', '#f44336']
+                });
+
+                // レベルアップ処理
+                document.getElementById('levelDisplay').innerText = "Lv.2 熟練の守護者";
+                document.getElementById('levelDisplay').style.color = "#4caf50";
+                
+                // 給料アップメッセージの表示
+                document.getElementById('wageMessage').classList.remove('hidden');
+
+                setTimeout(() => {
+                    alert("お疲れ様でした！\nミッション2つ以上達成により、Lv.2へ昇格！\n次回の給与より「時給+50円」が適用されます！");
+                }, 500);
+            } else if (count > 0) {
+                alert("惜しい！あと少しでレベルアップだ。\n今日はゆっくり休んでくれ。");
+            } else {
+                alert("ミッションをクリアしてから報告してくれ！");
+            }
+        }
+
+        // Service Worker登録
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('sw.js');
+        }
+    </script>
 </body>
 </html>
