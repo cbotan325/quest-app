@@ -17,13 +17,14 @@
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .staff-btn { background: #161b22; border: 1px solid #30363d; transition: all 0.2s; }
         .staff-btn:hover { border-color: #00f2ff; color: #00f2ff; box-shadow: 0 0 8px #00f2ff; }
+        /* 読み込み完了まで非表示にする設定 */
         [v-cloak] { display: none; }
     </style>
 </head>
 <body class="p-4 max-w-md mx-auto">
 
     <div id="app" v-cloak>
-        <!-- プレイヤー選択画面 -->
+        <!-- プレイヤー選択 -->
         <div v-if="!isLogined" class="min-h-screen flex flex-col justify-center items-center space-y-8">
             <h1 class="text-2xl text-cyan-400 pixel-font animate-pulse">SELECT PLAYER</h1>
             <div class="grid grid-cols-2 gap-4 w-full px-4">
@@ -33,12 +34,11 @@
                     <div class="text-[10px] text-gray-400 font-normal mt-1">Lv.{{ staff.level }}</div>
                 </button>
             </div>
-            <p v-if="staffList.length === 0" class="text-gray-500 text-sm">名簿を読み込み中...</p>
+            <p v-if="staffList.length === 0" class="text-gray-500 text-sm">LOADING PLAYER LIST...</p>
         </div>
 
-        <!-- メインコンテンツ -->
         <div v-else>
-            <!-- タブ切り替え -->
+            <!-- タブ -->
             <div class="flex justify-around mb-6 bg-gray-900 rounded-lg p-1 border border-gray-700">
                 <button @click="currentView = 'tasks'" 
                         :class="['flex-1 py-2 text-sm', currentView === 'tasks' ? 'text-cyan-400 font-bold bg-gray-800 rounded' : 'text-gray-400']">
@@ -50,66 +50,58 @@
                 </button>
             </div>
 
-            <!-- 任務一覧ビュー -->
+            <!-- タスク一覧 -->
             <div v-show="currentView === 'tasks'">
-                <header class="neon-border rounded-xl p-4 mb-6 bg-black text-center">
+                <header class="neon-border rounded-xl p-4 mb-6 bg-black">
                     <div class="flex justify-between items-center mb-1">
-                        <span class="text-[10px] text-gray-400 text-left">PLAYER: {{ staffName }}</span>
+                        <span class="text-[10px] text-gray-400">PLAYER: {{ staffName }}</span>
                         <button @click="logout" class="text-[10px] text-gray-500 underline">CHANGE</button>
                     </div>
                     <div class="flex justify-between items-end mb-2">
-                        <div class="text-left">
+                        <div>
                             <p class="text-xs text-cyan-400 pixel-font">LEVEL</p>
                             <p class="text-3xl font-bold text-white pixel-font">{{ user.level }}</p>
                         </div>
                         <div class="text-right">
-                            <p class="text-xs text-yellow-400">NEXT: {{ 100 - user.exp }}%</p>
+                            <p class="text-xs text-yellow-400">NEXT: {{ 100 - (user.points % 100) }}%</p>
                             <p class="text-xl text-white font-bold">{{ user.points }} <span class="text-xs">PT</span></p>
                         </div>
                     </div>
                     <div class="exp-bar-bg">
-                        <div class="exp-bar-fill" :style="{ width: user.exp + '%' }"></div>
+                        <div class="exp-bar-fill" :style="{ width: (user.points % 100) + '%' }"></div>
                     </div>
-                    <p class="text-[10px] mt-2 text-cyan-300">称号: {{ user.title }}</p>
                 </header>
 
-                <!-- カテゴリ選択 -->
                 <div class="flex overflow-x-auto space-x-2 mb-6 no-scrollbar">
                     <button v-for="cat in categories" @click="currentCategory = cat" 
                         :class="currentCategory === cat ? 'bg-cyan-600 border-cyan-400' : 'bg-gray-800 border-gray-600'"
-                        class="px-4 py-1 rounded-full border text-xs whitespace-nowrap transition-colors">
+                        class="px-4 py-1 rounded-full border text-xs whitespace-nowrap">
                         {{ cat }}
                     </button>
                 </div>
 
-                <!-- タスクリスト -->
                 <div class="space-y-3">
                     <div v-for="task in filteredTasks" :key="task.name" class="quest-card border border-gray-700 rounded-lg p-4 flex justify-between items-center">
                         <div class="flex-1">
                             <h3 class="text-sm font-bold mb-1">{{ task.name }}</h3>
-                            <div class="flex items-center space-x-2 text-xs text-gray-400">
-                                <span class="text-yellow-500">{{ task.level }}</span>
-                                <span>{{ task.point }} PT</span>
-                            </div>
+                            <div class="text-xs text-gray-400">{{ task.level }} / {{ task.point }} PT</div>
                         </div>
                         <button @click="completeTask(task)" 
-                                :disabled="isSubmitting"
-                                :class="[isSubmitting ? 'opacity-50 cursor-not-allowed border-gray-500 text-gray-500' : 'border-cyan-500 text-cyan-400 hover:bg-cyan-500 hover:text-white']"
-                                class="bg-transparent border px-3 py-1 rounded text-xs transition-colors">
-                            {{ isSubmitting ? '通信中...' : 'CLEAR' }}
+                                class="border border-cyan-500 text-cyan-400 px-3 py-1 rounded text-xs hover:bg-cyan-500 hover:text-white transition-colors">
+                            CLEAR
                         </button>
                     </div>
                 </div>
             </div>
 
-            <!-- ランキングビュー -->
+            <!-- ランキング -->
             <div v-show="currentView === 'ranking'">
                 <h2 class="text-cyan-400 text-lg pixel-font mb-4 text-center">🏆 RANKING</h2>
-                <div v-if="loadingRanking" class="text-center py-10 text-sm">集計中...</div>
-                <div v-else class="bg-gray-900 rounded-lg border border-gray-700 overflow-hidden">
+                <div v-if="loadingRanking" class="text-center py-10">集計中...</div>
+                <div v-else class="bg-gray-900 rounded-lg border border-gray-700">
                     <table class="w-full text-sm">
                         <tr v-for="(staff, index) in sortedRanking" :key="staff.name" class="border-b border-gray-800">
-                            <td class="p-3 font-bold text-yellow-500 w-16">{{ index + 1 }}位</td>
+                            <td class="p-3 text-yellow-500 font-bold">{{ index + 1 }}位</td>
                             <td class="p-3">{{ staff.name }}</td>
                             <td class="p-3 text-right font-bold text-cyan-400">{{ staff.totalPoints }} PT</td>
                         </tr>
@@ -126,17 +118,16 @@
             data() {
                 return { 
                     gasUrl: 'https://script.google.com/macros/s/AKfycbxAzQcIz5JsJS7AlPLlRlIms3gr1bDjnY7dBJhzpuL0k8mbDVfncgVSNnM7cocqBIa5/exec',
-                    staffList: [],
+                    staffList: JSON.parse(localStorage.getItem('cache_staff') || '[]'),
+                    tasks: JSON.parse(localStorage.getItem('cache_tasks') || '[]'),
                     staffName: localStorage.getItem('selected_staff') || '',
                     isLogined: !!localStorage.getItem('selected_staff'),
-                    tasks: [],
                     categories: [],
                     currentCategory: '',
                     currentView: 'tasks',
                     rankingData: [],
                     loadingRanking: false,
-                    isSubmitting: false,
-                    user: { level: 1, exp: 0, points: 0, title: '見習い清掃員' }
+                    user: { level: 1, points: 0 }
                 }
             },
             computed: {
@@ -148,38 +139,29 @@
                 }
             },
             mounted() {
-                this.fetchData();
+                this.initApp();
+                this.fetchData(); // 裏で最新版を取得
             },
             methods: {
+                initApp() {
+                    if (this.tasks.length > 0) {
+                        this.categories = [...new Set(this.tasks.map(t => t.category))];
+                        this.currentCategory = this.categories[0];
+                    }
+                    if (this.isLogined) this.updateUserInfo();
+                },
                 async fetchData() {
-    // 1. まずは保存されているキャッシュを表示（爆速で画面が出る）
-    const cachedTasks = localStorage.getItem('cache_tasks');
-    const cachedStaff = localStorage.getItem('cache_staff');
-    if (cachedTasks) this.tasks = JSON.parse(cachedTasks);
-    if (cachedStaff) {
-        this.staffList = JSON.parse(cachedStaff);
-        if (this.isLogined) this.updateUserInfo();
-    }
-
-    try {
-        // 2. 裏で最新データを取得
-        const response = await fetch(this.gasUrl);
-        const data = await response.json();
-        
-        // 3. データを更新してキャッシュに保存
-        this.tasks = data.tasks;
-        this.staffList = data.staffList;
-        localStorage.setItem('cache_tasks', JSON.stringify(data.tasks));
-        localStorage.setItem('cache_staff', JSON.stringify(data.staffList));
-
-        if (this.isLogined) this.updateUserInfo();
-        
-        if (this.tasks.length > 0 && !this.currentCategory) {
-            this.categories = [...new Set(this.tasks.map(t => t.category))];
-            this.currentCategory = this.categories[0];
-        }
-    } catch (e) { console.error(e); }
-}
+                    try {
+                        const response = await fetch(this.gasUrl);
+                        const data = await response.json();
+                        this.tasks = data.tasks;
+                        this.staffList = data.staffList;
+                        // キャッシュ更新
+                        localStorage.setItem('cache_tasks', JSON.stringify(data.tasks));
+                        localStorage.setItem('cache_staff', JSON.stringify(data.staffList));
+                        this.initApp();
+                    } catch (e) { console.error("Data fetch failed", e); }
+                },
                 login(staff) {
                     this.staffName = staff.name;
                     localStorage.setItem('selected_staff', staff.name);
@@ -196,49 +178,34 @@
                     if (info) {
                         this.user.points = info.points;
                         this.user.level = info.level;
-                        this.user.exp = info.points % 100; // 100ptでレベルアップ
-                        this.user.title = info.title;
                     }
                 },
                 async completeTask(task) {
-    if (this.isSubmitting) return;
+                    if (!confirm(`${task.name} クリア！`)) return;
 
-    // 確認ダイアログを消すとさらに速くなりますが、誤タップ防止ならそのままでOK
-    if (!confirm(`${task.name} をクリア！`)) return;
+                    // 1. 画面上の数字を即座に増やす（待ち時間ゼロ）
+                    this.user.points += task.point;
+                    this.user.level = Math.floor(this.user.points / 100) + 1;
 
-    // ★ 1. 通信を待たずに、画面上の数字をすぐ増やす（ここが体感速度のキモ）
-    this.user.points += task.point;
-    this.user.exp = this.user.points % 100;
-    this.user.level = Math.floor(this.user.points / 100) + 1;
-
-    // ★ 2. 非同期でこっそり送信
-    fetch(this.gasUrl, {
-        method: 'POST',
-        mode: 'no-cors', // これを入れるとレスポンスを待たずに終了できる（最速）
-        body: JSON.stringify({
-            staffName: this.staffName,
-            taskName: task.name,
-            category: task.category,
-            point: task.point
-        })
-    }).catch(e => {
-        alert('通信に失敗しました。後でやり直してください');
-        // 失敗した時だけ数字を戻す処理を入れるとより親切
-    });
-    
-    // アラートも出さないようにすると、リズム良く次の掃除に移れます
-}
+                    // 2. 裏でGASに送信（結果を待たずに次に進める）
+                    fetch(this.gasUrl, {
+                        method: 'POST',
+                        body: JSON.stringify({
+                            staffName: this.staffName,
+                            taskName: task.name,
+                            category: task.category,
+                            point: task.point
+                        })
+                    }).catch(e => console.error("Post failed", e));
+                },
                 async showRanking() {
                     this.currentView = 'ranking';
                     this.loadingRanking = true;
                     try {
                         const response = await fetch(`${this.gasUrl}?action=getRanking`);
                         this.rankingData = await response.json();
-                    } catch (e) {
-                        console.error("Ranking Load Error:", e);
-                    } finally {
-                        this.loadingRanking = false;
-                    }
+                    } catch (e) { console.error(e); }
+                    this.loadingRanking = false;
                 }
             }
         }).mount('#app');
