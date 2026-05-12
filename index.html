@@ -193,35 +193,38 @@
                     }
                 },
                 async completeTask(task) {
-                    if (this.isSubmitting) return;
+    if (this.isSubmitting) return;
+    if (!confirm(`${task.name} をクリアしましたか？`)) return;
 
-                    if (!confirm(`${task.name} をクリアしましたか？`)) return;
-
-                    this.isSubmitting = true;
-                    try {
-                        const response = await fetch(this.gasUrl, {
-                            method: 'POST',
-                            body: JSON.stringify({
-                                staffName: this.staffName,
-                                taskName: task.name,
-                                category: task.category,
-                                point: task.point
-                            })
-                        });
-                        const res = await response.json();
-                        if (res.status === 'success') {
-                            // 完了後に名簿を再取得して、UI上のレベルやポイントを更新する
-                            await this.fetchData();
-                            alert('任務完了！ナイスクリーン！');
-                        } else {
-                            alert('エラー: ' + res.message);
-                        }
-                    } catch (e) {
-                        alert('通信エラーが発生しました。時間を置いて試してください。');
-                    } finally {
-                        this.isSubmitting = false;
-                    }
-                },
+    this.isSubmitting = true;
+    try {
+        const response = await fetch(this.gasUrl, {
+            method: 'POST',
+            body: JSON.stringify({
+                staffName: this.staffName,
+                taskName: task.name,
+                category: task.category,
+                point: task.point
+            })
+        });
+        const res = await response.json();
+        
+        if (res.status === 'success') {
+            // ★ポイント：ここを async/await しないことで、
+            // ユーザーを待たせずに「完了」の演出へ進む
+            this.fetchData(); 
+            
+            alert('任務完了！'); 
+        } else {
+            alert('エラー: ' + res.message);
+        }
+    } catch (e) {
+        alert('通信エラーが発生しました。');
+    } finally {
+        // ここでボタンの「通信中...」がすぐ解除される
+        this.isSubmitting = false; 
+    }
+},
                 async showRanking() {
                     this.currentView = 'ranking';
                     this.loadingRanking = true;
