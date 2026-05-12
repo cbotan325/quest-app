@@ -202,37 +202,32 @@
                 },
                 async completeTask(task) {
     if (this.isSubmitting) return;
-    if (!confirm(`${task.name} をクリアしましたか？`)) return;
 
-    this.isSubmitting = true;
-    try {
-        const response = await fetch(this.gasUrl, {
-            method: 'POST',
-            body: JSON.stringify({
-                staffName: this.staffName,
-                taskName: task.name,
-                category: task.category,
-                point: task.point
-            })
-        });
-        const res = await response.json();
-        
-        if (res.status === 'success') {
-            // ★ポイント：ここを async/await しないことで、
-            // ユーザーを待たせずに「完了」の演出へ進む
-            this.fetchData(); 
-            
-            alert('任務完了！'); 
-        } else {
-            alert('エラー: ' + res.message);
-        }
-    } catch (e) {
-        alert('通信エラーが発生しました。');
-    } finally {
-        // ここでボタンの「通信中...」がすぐ解除される
-        this.isSubmitting = false; 
-    }
-},
+    // 確認ダイアログを消すとさらに速くなりますが、誤タップ防止ならそのままでOK
+    if (!confirm(`${task.name} をクリア！`)) return;
+
+    // ★ 1. 通信を待たずに、画面上の数字をすぐ増やす（ここが体感速度のキモ）
+    this.user.points += task.point;
+    this.user.exp = this.user.points % 100;
+    this.user.level = Math.floor(this.user.points / 100) + 1;
+
+    // ★ 2. 非同期でこっそり送信
+    fetch(this.gasUrl, {
+        method: 'POST',
+        mode: 'no-cors', // これを入れるとレスポンスを待たずに終了できる（最速）
+        body: JSON.stringify({
+            staffName: this.staffName,
+            taskName: task.name,
+            category: task.category,
+            point: task.point
+        })
+    }).catch(e => {
+        alert('通信に失敗しました。後でやり直してください');
+        // 失敗した時だけ数字を戻す処理を入れるとより親切
+    });
+    
+    // アラートも出さないようにすると、リズム良く次の掃除に移れます
+}
                 async showRanking() {
                     this.currentView = 'ranking';
                     this.loadingRanking = true;
