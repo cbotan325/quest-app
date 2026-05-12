@@ -34,57 +34,6 @@
             <p v-if="staffList.length === 0" class="text-gray-500">名簿を読み込み中...</p>
         </div>
 
-        <template>
-  <div class="ranking-container">
-    <h2>🏆 貢献度ランキング</h2>
-    <div v-if="loading">集計中...</div>
-    <ul v-else class="ranking-list">
-      <li v-for="(staff, index) in sortedRanking" :key="staff.name" class="ranking-item">
-        <span class="rank">{{ index + 1 }}位</span>
-        <span class="name">{{ staff.name }}</span>
-        <span class="points">{{ staff.totalPoints }} pt</span>
-      </li>
-    </ul>
-  </div>
-</template>
-
-<script setup>
-import { ref, onMounted, computed } from 'vue';
-
-const rankingData = ref([]);
-const loading = ref(true);
-const GAS_URL = "https://script.google.com/macros/s/AKfycbxAzQcIz5JsJS7AlPLlRlIms3gr1bDjnY7dBJhzpuL0k8mbDVfncgVSNnM7cocqBIa5/exec"; //
-
-const fetchRanking = async () => {
-  try {
-    const response = await fetch(`${GAS_URL}?action=getRanking`);
-    rankingData.value = await response.json();
-  } catch (error) {
-    console.error("ランキング取得失敗:", error);
-  } finally {
-    loading.value = false;
-  }
-};
-
-// ポイント順にソート
-const sortedRanking = computed(() => {
-  return [...rankingData.value].sort((a, b) => b.totalPoints - a.totalPoints);
-});
-
-onMounted(fetchRanking);
-</script>
-
-<style scoped>
-.ranking-list { list-style: none; padding: 0; }
-.ranking-item {
-  display: flex;
-  justify-content: space-between;
-  padding: 10px;
-  border-bottom: 1px solid #eee;
-}
-.rank { font-weight: bold; width: 40px; }
-.points { color: #f39c12; font-weight: bold; }
-</style>
 
         <div v-else>
             <header class="neon-border rounded-xl p-4 mb-6 bg-black">
