@@ -15,9 +15,12 @@
         .exp-bar-bg { height: 12px; background: #21262d; border-radius: 6px; overflow: hidden; }
         .exp-bar-fill { height: 100%; background: linear-gradient(90deg, #00f2ff, #0066ff); transition: width 0.5s ease-out; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
-        /* スタッフ選択用のボタンスタイル */
         .staff-btn { background: #161b22; border: 1px solid #30363d; transition: all 0.2s; }
         .staff-btn:hover { border-color: #00f2ff; color: #00f2ff; box-shadow: 0 0 8px #00f2ff; }
+        
+        /* ランキング用の追加スタイル */
+        .nav-tab { border-bottom: 2px solid transparent; }
+        .nav-tab.active { border-color: #00f2ff; color: #00f2ff; }
     </style>
 </head>
 <body class="p-4 max-w-md mx-auto">
@@ -34,181 +37,59 @@
             <p v-if="staffList.length === 0" class="text-gray-500">名簿を読み込み中...</p>
         </div>
 
-        <div style="margin: 10px 0;">
-          <button @click="currentView = 'tasks'">🛠 タスク</button>
-          <button @click="fetchRanking">🏆 ランキング</button>
-        </div>
-
-        <div v-show="currentView === 'tasks'">
-        </div>
-
-        <div v-show="currentView === 'ranking'">
-          <h2>🏆 貢献度ランキング</h2>
-          <div v-if="loadingRanking">集計中...</div>
-          <table v-else border="1" style="width:100%; border-collapse: collapse;">
-            <tr v-for="(staff, index) in rankingData" :key="index">
-              <td>{{ index + 1 }}位</td>
-              <td>{{ staff.name }}</td>
-              <td>{{ staff.totalPoints }} pt</td>
-            </tr>
-          </table>
-        </div>
-
-
         <div v-else>
-            <header class="neon-border rounded-xl p-4 mb-6 bg-black">
-                <div class="flex justify-between items-center mb-1">
-                    <span class="text-[10px] text-gray-400">PLAYER: {{ staffName }}</span>
-                    <button @click="logout" class="text-[10px] text-gray-500 underline">CHANGE</button>
-                </div>
-                <div class="flex justify-between items-end mb-2">
-                    <div>
-                        <p class="text-xs text-cyan-400 pixel-font">LEVEL</p>
-                        <p class="text-3xl font-bold text-white pixel-font">{{ user.level }}</p>
-                    </div>
-                    <div class="text-right">
-                        <p class="text-xs text-yellow-400">NEXT: {{ 100 - user.exp }}%</p>
-                        <p class="text-xl text-white font-bold">{{ user.points }} <span class="text-xs">PT</span></p>
-                    </div>
-                </div>
-                <div class="exp-bar-bg">
-                    <div class="exp-bar-fill" :style="{ width: user.exp + '%' }"></div>
-                </div>
-                <p class="text-center text-xs mt-2 text-cyan-300">称号：{{ user.title }}</p>
-            </header>
-
-            <div class="flex overflow-x-auto space-x-2 mb-6 no-scrollbar">
-                <button v-for="cat in categories" @click="currentCategory = cat" 
-                    :class="currentCategory === cat ? 'bg-cyan-600 border-cyan-400' : 'bg-gray-800 border-gray-600'"
-                    class="px-4 py-1 rounded-full border text-xs whitespace-nowrap transition-colors">
-                    {{ cat }}
+            <div class="flex justify-around mb-6 bg-gray-900 rounded-lg p-1 border border-gray-700">
+                <button @click="currentView = 'tasks'" 
+                        :class="['flex-1 py-2 text-sm', currentView === 'tasks' ? 'text-cyan-400 font-bold bg-gray-800 rounded' : 'text-gray-400']">
+                    🛠 任務一覧
+                </button>
+                <button @click="showRanking" 
+                        :class="['flex-1 py-2 text-sm', currentView === 'ranking' ? 'text-cyan-400 font-bold bg-gray-800 rounded' : 'text-gray-400']">
+                    🏆 順位表
                 </button>
             </div>
 
-            <h2 class="text-cyan-400 text-sm mb-4 flex items-center">
-                <span class="mr-2">▶</span> ACTIVE QUESTS ({{ currentCategory }})
-            </h2>
-            
-            <div class="space-y-3">
-                <div v-for="task in filteredTasks" :key="task.name" class="quest-card border border-gray-700 rounded-lg p-4 flex justify-between items-center">
-                    <div class="flex-1">
-                        <h3 class="text-sm font-bold mb-1">{{ task.name }}</h3>
-                        <div class="flex items-center space-x-2">
-                            <span class="text-yellow-500 text-xs">{{ task.level }}</span>
-                            <span class="text-gray-500 text-[10px]">報酬: {{ task.point }} PT</span>
+            <div v-show="currentView === 'tasks'">
+                <header class="neon-border rounded-xl p-4 mb-6 bg-black">
+                    <div class="flex justify-between items-center mb-1">
+                        <span class="text-[10px] text-gray-400">PLAYER: {{ staffName }}</span>
+                        <button @click="logout" class="text-[10px] text-gray-500 underline">CHANGE</button>
+                    </div>
+                    <div class="flex justify-between items-end mb-2">
+                        <div>
+                            <p class="text-xs text-cyan-400 pixel-font">LEVEL</p>
+                            <p class="text-3xl font-bold text-white pixel-font">{{ user.level }}</p>
+                        </div>
+                        <div class="text-right">
+                            <p class="text-xs text-yellow-400">NEXT: {{ 100 - user.exp }}%</p>
+                            <p class="text-xl text-white font-bold">{{ user.points }} <span class="text-xs">PT</span></p>
                         </div>
                     </div>
-                    <button @click="completeTask(task)" class="ml-4 bg-transparent border border-cyan-500 text-cyan-400 px-3 py-1 rounded text-xs hover:bg-cyan-500 hover:text-white transition-all">
-                        CLEAR
+                    <div class="exp-bar-bg">
+                        <div class="exp-bar-fill" :style="{ width: user.exp + '%' }"></div>
+                    </div>
+                    <p class="text-center text-xs mt-2 text-cyan-300">称号：{{ user.title }}</p>
+                </header>
+
+                <div class="flex overflow-x-auto space-x-2 mb-6 no-scrollbar">
+                    <button v-for="cat in categories" @click="currentCategory = cat" 
+                        :class="currentCategory === cat ? 'bg-cyan-600 border-cyan-400' : 'bg-gray-800 border-gray-600'"
+                        class="px-4 py-1 rounded-full border text-xs whitespace-nowrap transition-colors">
+                        {{ cat }}
                     </button>
                 </div>
-            </div>
-        </div>
-    </div>
 
-    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
-    <script>
-        const { createApp } = Vue;
-        createApp({
-            data() {
-                // data() の中に追加するイメージ
-                rankingData: [],
-                loadingRanking: false,
-                currentView: 'tasks', // 表示切替用
-
-                // methods: { ... } の中に追加する関数
-                    async fetchRanking() {
-                      this.loadingRanking = true;
-                      const GAS_URL = "https://script.google.com/macros/s/AKfycbxAzQcIz5JsJS7AlPLlRlIms3gr1bDjnY7dBJhzpuL0k8mbDVfncgVSNnM7cocqBIa5/exec";
-                  try {
-                        const response = await fetch(`${GAS_URL}?action=getRanking`);
-                        this.rankingData = await response.json();
-                        this.currentView = 'ranking'; // 取得できたら画面をランキングに切り替える
-                  } catch (error) {
-                    alert("ランキングの取得に失敗しました");
-                  } finally {
-                    this.loadingRanking = false;
-                  }
-                }
-                return { 
-                    gasUrl: 'https://script.google.com/macros/s/AKfycbxAzQcIz5JsJS7AlPLlRlIms3gr1bDjnY7dBJhzpuL0k8mbDVfncgVSNnM7cocqBIa5/exec', // ★ここにあなたのGASのURLを貼ってください
-                    staffList: [],
-                    staffName: localStorage.getItem('selected_staff') || '',
-                    isLogined: !!localStorage.getItem('selected_staff'),
-                    tasks: [],
-                    categories: [],
-                    currentCategory: '',
-                    user: {
-                        level: 1,
-                        exp: 0,
-                        points: 0,
-                        title: '見習い清掃員'
-                    }
-                }
-            },
-            mounted() {
-                this.fetchData();
-            },
-            methods: {
-                async fetchData() {
-                    try {
-                        const response = await fetch(this.gasUrl);
-                        const data = await response.json();
-                        
-                        this.tasks = data.tasks;
-                        this.staffList = data.staffList;
-                        
-                        // カテゴリ一覧を抽出
-                        if (this.tasks.length > 0) {
-                            this.categories = [...new Set(this.tasks.map(t => t.category))];
-                            this.currentCategory = this.categories[0];
-                        }
-                    } catch (e) {
-                        console.error("データ取得失敗:", e);
-                    }
-                },
-                login(name) {
-                    this.staffName = name;
-                    this.isLogined = true;
-                    localStorage.setItem('selected_staff', name);
-                },
-                logout() {
-                    if(confirm("プレイヤーを変更しますか？")) {
-                        this.isLogined = false;
-                        this.staffName = '';
-                        localStorage.removeItem('selected_staff');
-                    }
-                },
-                async completeTask(task) {
-                    // 演出（簡易）
-                    this.user.points += task.point;
-                    this.user.exp += 20; // 経験値の上昇量は仮
-                    
-                    // GASに報告を送信
-                    await fetch(this.gasUrl, {
-                        method: "POST",
-                        mode: "no-cors", // GASへのPOSTでエラーが出るのを防ぐ
-                        body: JSON.stringify({
-                            staffName: this.staffName,
-                            category: task.category,
-                            taskName: task.name,
-                            point: task.point
-                        })
-                    });
-
-                    if(this.user.exp >= 100) {
-                        this.user.level++;
-                        this.user.exp = 0;
-                        alert("LEVEL UP!!");
-                    }
-                }
-            },
-            computed: {
-                filteredTasks() {
-                    return this.tasks.filter(t => t.category === this.currentCategory);
-                }
-            }
-        }).mount('#app')
-    </script>
-</body>
-</html>
+                <h2 class="text-cyan-400 text-sm mb-4 flex items-center">
+                    <span class="mr-2">▶</span> ACTIVE QUESTS ({{ currentCategory }})
+                </h2>
+                
+                <div class="space-y-3">
+                    <div v-for="task in filteredTasks" :key="task.name" class="quest-card border border-gray-700 rounded-lg p-4 flex justify-between items-center">
+                        <div class="flex-1">
+                            <h3 class="text-sm font-bold mb-1">{{ task.name }}</h3>
+                            <div class="flex items-center space-x-2">
+                                <span class="text-yellow-500 text-xs">{{ task.level }}</span>
+                                <span class="text-gray-500 text-[10px]">報酬: {{ task.point }} PT</span>
+                            </div>
+                        </div>
+                        <button @click="completeTask(task)" class="ml-4 bg-transparent border border-cyan-500 text-cyan-400
