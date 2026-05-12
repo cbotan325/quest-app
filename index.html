@@ -25,12 +25,13 @@
         <div v-if="!isLogined" class="min-h-screen flex flex-col justify-center items-center space-y-8">
             <h1 class="text-2xl text-cyan-400 pixel-font animate-pulse">SELECT PLAYER</h1>
             <div class="grid grid-cols-2 gap-4 w-full px-4">
-                <button v-for="name in staffList" :key="name" @click="login(name)" 
-                        class="staff-btn py-4 rounded-lg font-bold text-lg">
-                    {{ name }}
+                <button v-for="staff in staffList" :key="staff.name" @click="login(staff)" 
+                        class="staff-btn py-4 rounded-lg font-bold">
+                    <div>{{ staff.name }}</div>
+                    <div class="text-[10px] text-gray-400 font-normal mt-1">Lv.{{ staff.level }}</div>
                 </button>
             </div>
-            <p v-if="staffList.length === 0" class="text-gray-500">名簿を読み込み中...</p>
+            <p v-if="staffList.length === 0" class="text-gray-500 text-sm">名簿を読み込み中...</p>
         </div>
 
         <div v-else>
@@ -46,13 +47,13 @@
             </div>
 
             <div v-show="currentView === 'tasks'">
-                <header class="neon-border rounded-xl p-4 mb-6 bg-black">
+                <header class="neon-border rounded-xl p-4 mb-6 bg-black text-center">
                     <div class="flex justify-between items-center mb-1">
-                        <span class="text-[10px] text-gray-400">PLAYER: {{ staffName }}</span>
+                        <span class="text-[10px] text-gray-400 text-left">PLAYER: {{ staffName }}</span>
                         <button @click="logout" class="text-[10px] text-gray-500 underline">CHANGE</button>
                     </div>
                     <div class="flex justify-between items-end mb-2">
-                        <div>
+                        <div class="text-left">
                             <p class="text-xs text-cyan-400 pixel-font">LEVEL</p>
                             <p class="text-3xl font-bold text-white pixel-font">{{ user.level }}</p>
                         </div>
@@ -64,6 +65,7 @@
                     <div class="exp-bar-bg">
                         <div class="exp-bar-fill" :style="{ width: user.exp + '%' }"></div>
                     </div>
+                    <p class="text-[10px] mt-2 text-cyan-300">称号: {{ user.title }}</p>
                 </header>
 
                 <div class="flex overflow-x-auto space-x-2 mb-6 no-scrollbar">
@@ -145,49 +147,4 @@
                     try {
                         const response = await fetch(`${this.gasUrl}?action=getRanking`);
                         this.rankingData = await response.json();
-                    } catch (e) { alert("取得失敗"); }
-                    finally { this.loadingRanking = false; }
-                },
-                login(name) {
-                    this.staffName = name;
-                    this.isLogined = true;
-                    localStorage.setItem('selected_staff', name);
-                },
-                logout() {
-                    if(confirm("変更しますか？")) {
-                        this.isLogined = false;
-                        localStorage.removeItem('selected_staff');
-                    }
-                },
-                async completeTask(task) {
-                    this.user.points += task.point;
-                    this.user.exp += 20;
-                    await fetch(this.gasUrl, {
-                        method: "POST",
-                        mode: "no-cors",
-                        body: JSON.stringify({
-                            staffName: this.staffName,
-                            category: task.category,
-                            taskName: task.name,
-                            point: task.point
-                        })
-                    });
-                    if(this.user.exp >= 100) {
-                        this.user.level++;
-                        this.user.exp = 0;
-                        alert("LEVEL UP!!");
-                    }
-                }
-            },
-            computed: {
-                filteredTasks() {
-                    return this.tasks.filter(t => t.category === this.currentCategory);
-                },
-                sortedRanking() {
-                    return [...this.rankingData].sort((a, b) => b.totalPoints - a.totalPoints);
-                }
-            }
-        }).mount('#app')
-    </script>
-</body>
-</html>
+                    } catch (e
