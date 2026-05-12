@@ -17,10 +17,6 @@
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .staff-btn { background: #161b22; border: 1px solid #30363d; transition: all 0.2s; }
         .staff-btn:hover { border-color: #00f2ff; color: #00f2ff; box-shadow: 0 0 8px #00f2ff; }
-        
-        /* ランキング用の追加スタイル */
-        .nav-tab { border-bottom: 2px solid transparent; }
-        .nav-tab.active { border-color: #00f2ff; color: #00f2ff; }
     </style>
 </head>
 <body class="p-4 max-w-md mx-auto">
@@ -68,7 +64,6 @@
                     <div class="exp-bar-bg">
                         <div class="exp-bar-fill" :style="{ width: user.exp + '%' }"></div>
                     </div>
-                    <p class="text-center text-xs mt-2 text-cyan-300">称号：{{ user.title }}</p>
                 </header>
 
                 <div class="flex overflow-x-auto space-x-2 mb-6 no-scrollbar">
@@ -79,17 +74,120 @@
                     </button>
                 </div>
 
-                <h2 class="text-cyan-400 text-sm mb-4 flex items-center">
-                    <span class="mr-2">▶</span> ACTIVE QUESTS ({{ currentCategory }})
-                </h2>
-                
                 <div class="space-y-3">
                     <div v-for="task in filteredTasks" :key="task.name" class="quest-card border border-gray-700 rounded-lg p-4 flex justify-between items-center">
                         <div class="flex-1">
                             <h3 class="text-sm font-bold mb-1">{{ task.name }}</h3>
-                            <div class="flex items-center space-x-2">
-                                <span class="text-yellow-500 text-xs">{{ task.level }}</span>
-                                <span class="text-gray-500 text-[10px]">報酬: {{ task.point }} PT</span>
+                            <div class="flex items-center space-x-2 text-xs text-gray-400">
+                                <span class="text-yellow-500">{{ task.level }}</span>
+                                <span>{{ task.point }} PT</span>
                             </div>
                         </div>
-                        <button @click="completeTask(task)" class="ml-4 bg-transparent border border-cyan-500 text-cyan-400
+                        <button @click="completeTask(task)" class="bg-transparent border border-cyan-500 text-cyan-400 px-3 py-1 rounded text-xs hover:bg-cyan-500 hover:text-white">CLEAR</button>
+                    </div>
+                </div>
+            </div>
+
+            <div v-show="currentView === 'ranking'">
+                <h2 class="text-cyan-400 text-lg pixel-font mb-4 text-center">🏆 RANKING</h2>
+                <div v-if="loadingRanking" class="text-center py-10 text-sm">集計中...</div>
+                <div v-else class="bg-gray-900 rounded-lg border border-gray-700 overflow-hidden">
+                    <table class="w-full text-sm">
+                        <tr v-for="(staff, index) in sortedRanking" :key="staff.name" class="border-b border-gray-800">
+                            <td class="p-3 font-bold text-yellow-500">{{ index + 1 }}位</td>
+                            <td class="p-3">{{ staff.name }}</td>
+                            <td class="p-3 text-right font-bold text-cyan-400">{{ staff.totalPoints }} PT</td>
+                        </tr>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script>
+        const { createApp } = Vue;
+        createApp({
+            data() {
+                return { 
+                    gasUrl: 'https://script.google.com/macros/s/AKfycbxAzQcIz5JsJS7AlPLlRlIms3gr1bDjnY7dBJhzpuL0k8mbDVfncgVSNnM7cocqBIa5/exec',
+                    staffList: [],
+                    staffName: localStorage.getItem('selected_staff') || '',
+                    isLogined: !!localStorage.getItem('selected_staff'),
+                    tasks: [],
+                    categories: [],
+                    currentCategory: '',
+                    currentView: 'tasks',
+                    rankingData: [],
+                    loadingRanking: false,
+                    user: { level: 1, exp: 0, points: 0, title: '見習い清掃員' }
+                }
+            },
+            mounted() {
+                this.fetchData();
+            },
+            methods: {
+                async fetchData() {
+                    try {
+                        const response = await fetch(this.gasUrl);
+                        const data = await response.json();
+                        this.tasks = data.tasks;
+                        this.staffList = data.staffList;
+                        if (this.tasks.length > 0) {
+                            this.categories = [...new Set(this.tasks.map(t => t.category))];
+                            this.currentCategory = this.categories[0];
+                        }
+                    } catch (e) { console.error(e); }
+                },
+                async showRanking() {
+                    this.currentView = 'ranking';
+                    this.loadingRanking = true;
+                    try {
+                        const response = await fetch(`${this.gasUrl}?action=getRanking`);
+                        this.rankingData = await response.json();
+                    } catch (e) { alert("取得失敗"); }
+                    finally { this.loadingRanking = false; }
+                },
+                login(name) {
+                    this.staffName = name;
+                    this.isLogined = true;
+                    localStorage.setItem('selected_staff', name);
+                },
+                logout() {
+                    if(confirm("変更しますか？")) {
+                        this.isLogined = false;
+                        localStorage.removeItem('selected_staff');
+                    }
+                },
+                async completeTask(task) {
+                    this.user.points += task.point;
+                    this.user.exp += 20;
+                    await fetch(this.gasUrl, {
+                        method: "POST",
+                        mode: "no-cors",
+                        body: JSON.stringify({
+                            staffName: this.staffName,
+                            category: task.category,
+                            taskName: task.name,
+                            point: task.point
+                        })
+                    });
+                    if(this.user.exp >= 100) {
+                        this.user.level++;
+                        this.user.exp = 0;
+                        alert("LEVEL UP!!");
+                    }
+                }
+            },
+            computed: {
+                filteredTasks() {
+                    return this.tasks.filter(t => t.category === this.currentCategory);
+                },
+                sortedRanking() {
+                    return [...this.rankingData].sort((a, b) => b.totalPoints - a.totalPoints);
+                }
+            }
+        }).mount('#app')
+    </script>
+</body>
+</html>
