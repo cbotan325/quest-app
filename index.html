@@ -152,26 +152,34 @@
             },
             methods: {
                 async fetchData() {
-                    try {
-                        const response = await fetch(this.gasUrl);
-                        const data = await response.json();
-                        this.tasks = data.tasks;
-                        this.staffList = data.staffList;
-                        
-                        // ログイン済みならステータス更新
-                        if (this.isLogined) {
-                            this.updateUserInfo();
-                        }
+    // 1. まずは保存されているキャッシュを表示（爆速で画面が出る）
+    const cachedTasks = localStorage.getItem('cache_tasks');
+    const cachedStaff = localStorage.getItem('cache_staff');
+    if (cachedTasks) this.tasks = JSON.parse(cachedTasks);
+    if (cachedStaff) {
+        this.staffList = JSON.parse(cachedStaff);
+        if (this.isLogined) this.updateUserInfo();
+    }
 
-                        // カテゴリの初期設定
-                        if (this.tasks.length > 0 && !this.currentCategory) {
-                            this.categories = [...new Set(this.tasks.map(t => t.category))];
-                            this.currentCategory = this.categories[0];
-                        }
-                    } catch (e) { 
-                        console.error("Fetch Error:", e);
-                    }
-                },
+    try {
+        // 2. 裏で最新データを取得
+        const response = await fetch(this.gasUrl);
+        const data = await response.json();
+        
+        // 3. データを更新してキャッシュに保存
+        this.tasks = data.tasks;
+        this.staffList = data.staffList;
+        localStorage.setItem('cache_tasks', JSON.stringify(data.tasks));
+        localStorage.setItem('cache_staff', JSON.stringify(data.staffList));
+
+        if (this.isLogined) this.updateUserInfo();
+        
+        if (this.tasks.length > 0 && !this.currentCategory) {
+            this.categories = [...new Set(this.tasks.map(t => t.category))];
+            this.currentCategory = this.categories[0];
+        }
+    } catch (e) { console.error(e); }
+}
                 login(staff) {
                     this.staffName = staff.name;
                     localStorage.setItem('selected_staff', staff.name);
